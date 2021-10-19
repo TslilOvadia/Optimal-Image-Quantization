@@ -11,14 +11,12 @@ YIQ_MATRIX = np.array([[0.299, 0.587, 0.114],[0.596, -0.275, -0.321],[0.212, -0.
 RGB_MATRIX = np.array([[1, 0.956, 0,621],[1, -0.272, -0.647],[1, -1.106, 1.703]])
 GRAY_SCALE = 1
 RGB = 2
-from sys import platform as sys_pf
-if sys_pf == 'darwin':
-    import matplotlib
-    matplotlib.use("TkAgg")
+
+
 x = np.hstack([np.repeat(np.arange(0,50,2),10)[None, :], np.array([255]*6)[None, :]])
 grad = np.tile(x, (256,1))
 
-
+# 3.2 - Read Image
 def read_image(filename, representation):
     """
     filename - the filename of an image on disk (could be grayscale or RGB).
@@ -30,7 +28,9 @@ def read_image(filename, representation):
     :param representation: Int - as described above
     :return: an image in the correct representation
     """
-    tempImage  = plt.imread(filename)
+    if representation != RGB and representation != GRAY_SCALE:
+        return "Invalid Input. You may use representation <- {1, 2}"
+    tempImage  = plt.imread(filename)[:,:,:3]
     resultImage = tempImage
     if representation == GRAY_SCALE:
         resultImage = skimage.color.rgb2gray(tempImage)
@@ -49,15 +49,21 @@ def TEST_imdisplay(imageToShow):
     plt.imshow(imageToShow, cmap = "gray")
     plt.show()
 
+# 3.3 - Display Image
 def imdisplay(filename, representation):
     """
     filename and representation are the same as those defined in read_image’s interface.
     :param filename:
     :param representation:
     """
+    if representation != GRAY_SCALE and representation != RGB:
+        return "Invalid Input. You may use representation <- {1, 2}"
     imageToShow = read_image(filename, representation)
     plt.figure()
-    plt.imshow(imageToShow, cmap = "gray")
+    if representation == GRAY_SCALE:
+        plt.imshow(imageToShow, cmap = "gray")
+    else:
+        plt.imshow(imageToShow)
     plt.show()
 
 
@@ -68,8 +74,9 @@ def rgb2yiq(imRGB):
     :param imRGB:  An RGB image
     :return:
     """
-    result = np.dot(imRGB, YIQ_MATRIX.T)
-    return result
+    return skimage.color.rgb2yiq(imRGB)
+    # result = np.dot(YIQ_MATRIX, imRGB.T)
+    # return result
 
 
 # 3.4.2 - Transforming an YIQ image to RGB color space
@@ -79,9 +86,9 @@ def yiq2rgb(imYIQ):
     :param imYIQ:
     :return:
     """
-    result = np.dot(imYIQ, RGB_MATRIX.T)
-    return result
-
+    # result = np.dot(RGB_MATRIX, imYIQ.T)
+    # return result
+    return skimage.color.yiq2rgb(imYIQ)
 
 def getNumOfPixel(image):
     """
@@ -101,6 +108,18 @@ def checkIfNormalizedValid(histogram):
 
 
 
+def checkImageFormat(image):
+    """
+
+    :param image: an Image
+    :return:
+    """
+    if len(image.shape) == 2:
+        return GRAY_SCALE
+    elif len(image.shape) == 3:
+        return RGB
+    else:
+        return 0
 # 3.5 - Histogram equalization
 
 def histogram_equalize(im_orig):
@@ -114,7 +133,24 @@ def histogram_equalize(im_orig):
             - hist_eq - is a 256 bin histogram of the equalized image (array with shape (256,) ).
     """
 
+    """
+    Important Things To Complete:
+    1. Ask if it is possible to make use of skimage.color.rgb2yiq and yiq2rgb
+    2. Figure out how to perform a linear stretch
+    3. Add some end-cases where the algorithm could fail e.g where we have only 2-color image.
+    4. Remove unnecessary junk from code
+    """
+
+    # Step No. 0 - Check if the given image is an RGB/GrayScale Format:
+    swappedToYIQ = False # Used to help us know if yiq2rgb is needed
+    format = checkImageFormat(im_orig)
+    if format == RGB:
+        im_orig = rgb2yiq(im_orig)[:,:,0]
+        swappedToYIQ = True
+
+    # im_orig =  grad/255
     # Step No. 1 - Compute the image histogram:
+
     hist_orig,bins = np.histogram(im_orig.flatten(), 256, [0, 1])
     # Step No. 2 - Compute the cumulative histogram:
     hist_cdf = np.array(hist_orig.cumsum(), dtype=np.float)
@@ -136,15 +172,37 @@ def histogram_equalize(im_orig):
     flat_im_eq = lookUpTable[np.array(im_orige, dtype=int)]
     #
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
+    if swappedToYIQ:
+        im_orig = yiq2rgb(im_orig)
     # print(T_k)
     TEST_imdisplay(im_eq)
-    hist_eq, bins_eq = np.histogram(im_eq.flatten(), 256, [0, 1])
+    hist_eq, bins_eq = np.histogram(flat_im_eq, 256, [0, 256])
+    # plt.plot(hist_eq)
+    # plt.show()
 
     return hist_orig, im_eq, hist_eq
 
 
+# 3.6 Optimal image quantization
+def quantize (im_orig, n_quant, n_iter):
+    """
+    :param im_orig: is the input grayscale or RGB image to be quantized (float64 image with values in [0, 1])
+    :param n_quant: is the number of intensities your output im_quant image should have.
+    :param n_iter: is the maximum number of iterations of the optimization procedure (may converge earlier.)
+    :return: [im_quant, error] where:
+             im_quant: is the quantized output image. (float64 image with values in [0, 1]).
+             error: is an array with shape (n_iter,) (or less) of the total intensities error for each iteration of the
+    """
+    if format == RGB:
+        im_orig = rgb2yiq(im_orig)[:, :, 0]
+
+
+    pass
+
 
 
 if __name__ == '__main__':
-    imdisplay("/Users/tzlilovadia/Desktop/test.png", 1)
+    test_im = read_image("/Users/tzlilovadia/Desktop/test.png",2)
+    # print(test_im.shape)
     histogram_equalize(read_image("/Users/tzlilovadia/Desktop/test.png", 1))
+    # TEST_imdisplay(grad)
