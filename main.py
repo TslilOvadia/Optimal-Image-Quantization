@@ -7,6 +7,7 @@ import numpy as np
 import skimage.color
 
 
+
 YIQ_MATRIX = np.array([[0.299, 0.587, 0.114],[0.596, -0.275, -0.321],[0.212, -0.523, 0.311]])
 RGB_MATRIX = np.array([[1, 0.956, 0,621],[1, -0.272, -0.647],[1, -1.106, 1.703]])
 GRAY_SCALE = 1
@@ -60,10 +61,7 @@ def imdisplay(filename, representation):
         return "Invalid Input. You may use representation <- {1, 2}"
     imageToShow = read_image(filename, representation)
     plt.figure()
-    if representation == GRAY_SCALE:
-        plt.imshow(imageToShow, cmap = "gray")
-    else:
-        plt.imshow(imageToShow)
+    plt.imshow(imageToShow, cmap = "gray")
     plt.show()
 
 
@@ -120,6 +118,12 @@ def checkImageFormat(image):
         return RGB
     else:
         return 0
+
+def getHistogram(image):
+    hist,bins = np.histogram(image.flatten(), 256, [0, 1])
+    return hist
+
+
 # 3.5 - Histogram equalization
 
 def histogram_equalize(im_orig):
@@ -133,12 +137,13 @@ def histogram_equalize(im_orig):
             - hist_eq - is a 256 bin histogram of the equalized image (array with shape (256,) ).
     """
 
-    """
+    """ 
     Important Things To Complete:
     1. Ask if it is possible to make use of skimage.color.rgb2yiq and yiq2rgb
     2. Figure out how to perform a linear stretch
     3. Add some end-cases where the algorithm could fail e.g where we have only 2-color image.
     4. Remove unnecessary junk from code
+    5. Make sure that the values returned are by the requested format
     """
 
     # Step No. 0 - Check if the given image is an RGB/GrayScale Format:
@@ -153,7 +158,7 @@ def histogram_equalize(im_orig):
 
     hist_orig,bins = np.histogram(im_orig.flatten(), 256, [0, 1])
     # Step No. 2 - Compute the cumulative histogram:
-    hist_cdf = np.array(hist_orig.cumsum(), dtype=np.float)
+    hist_cdf = np.array(hist_orig.cumsum(), dtype=np.float64)
     # Step No. 3 - Normalize the cumulative histogram:
     N = getNumOfPixel(im_orig)
     hist_cdf /= N
@@ -172,8 +177,8 @@ def histogram_equalize(im_orig):
     flat_im_eq = lookUpTable[np.array(im_orige, dtype=int)]
     #
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
-    if swappedToYIQ:
-        im_orig = yiq2rgb(im_orig)
+    # if swappedToYIQ:
+    #     im_orig = yiq2rgb(im_orig)
     # print(T_k)
     TEST_imdisplay(im_eq)
     hist_eq, bins_eq = np.histogram(flat_im_eq, 256, [0, 256])
@@ -181,6 +186,38 @@ def histogram_equalize(im_orig):
     # plt.show()
 
     return hist_orig, im_eq, hist_eq
+
+def initQuants(hist_seg):
+    quants = []
+    z_curr = 0
+    idx_curr = 0
+    for i in hist_seg:
+        if i == 0:
+            continue
+        quants.append( int(z_curr+(i-z_curr)/2))
+        idx_curr += 1
+        z_curr = i
+    return quants
+
+def updateSegmentIndex(q1, q2):
+    return (q1+q2)/2
+
+def updateQuantIndex(seg_i, histogram):
+    """
+
+    :param seg_i: Is an range which represents a segment of 256 array.
+    :param histogram:
+    :return:
+    """
+    seg_i_arr = np.array(seg_i) ##
+
+    hist_seg_i = histogram[seg_i_arr] ##
+
+    enumrtator = sum(list(map(lambda z, h_z: z * h_z, seg_i, hist_seg_i)))
+
+    denomenator = sum(hist_seg_i)
+
+    return enumrtator/denomenator
 
 
 # 3.6 Optimal image quantization
@@ -193,16 +230,52 @@ def quantize (im_orig, n_quant, n_iter):
              im_quant: is the quantized output image. (float64 image with values in [0, 1]).
              error: is an array with shape (n_iter,) (or less) of the total intensities error for each iteration of the
     """
-    if format == RGB:
-        im_orig = rgb2yiq(im_orig)[:, :, 0]
+    seg_size = int(256/n_quant)
+    hist = getHistogram(im_orig)
+    seg_help = range(0,256,seg_size)
+
+    hist_seg_indices = list(map(lambda x: x - 1, np.array(seg_help)))
+    ## get the initial q values that agrees with the current ((z_i) + 1, z_i+1] segment:
+
+    quants = initQuants(hist_seg_indices)
+    hist_seg = []
+
+    ## get the initial uniform distributed segments of z_i from the algorithm we learned
+    for seg in range(n_quant):
+        hist_seg.append(hist[seg : (seg+1)*seg_size])
+
+    for iteration in range(n_iter):
+        # Computing q - the values to which each of the segments’ intensities will map.
+        #               q is also a one dimensional array, containing n_quant elements:
+        seg_idx = iteration % len(hist_seg_indices)
+        quants_idx = quants_idx = iteration%len(quants)
+
+        quants[quants_idx] = updateQuantIndex(range(hist_seg_indices[iteration],
+                                                               hist_seg_indices[iteration+1]),hist)
+
+        # Computing z - the borders which divide the histograms into segments.
+        #               z is an array with shape (n_quant+1,). The first and last elements are 0 and 255 respectively:
+
+        hist_seg_indices[seg_idx] = updateSegmentIndex(quants[quants_idx], quants[quants_idx])
 
 
-    pass
+        pass
 
 
 
 if __name__ == '__main__':
-    test_im = read_image("/Users/tzlilovadia/Desktop/test.png",2)
+    seg_size = int(256/8)
+    seg_help = range(0,257,seg_size)
+
+    hist_seg = list(map(lambda x: x-1 ,np.array(seg_help)))
+    hist_seg[0]=0
+    print(hist_seg)
+
+
+    # test_im = read_image("/Users/tzlilovadia/Desktop/testt.png",1)
     # print(test_im.shape)
-    histogram_equalize(read_image("/Users/tzlilovadia/Desktop/test.png", 1))
+    # TEST_imdisplay(test_im)
+    # # print(test_im.shape)
+    # histogram_equalize(read_image("/Users/tzlilovadia/Desktop/testt.png", 2))
+    # quantize()
     # TEST_imdisplay(grad)
