@@ -174,8 +174,6 @@ def histogram_equalize(im_orig):
     im_orige = np.floor(im_orige*255)
     # LUT:
     lookUpTable = np.floor((hist_cdf - hist_cdf.min())/(hist_cdf[255]-hist_cdf.min())*255)
-    print(lookUpTable.shape)
-    print(im_orige.shape)
     flat_im_eq = lookUpTable[np.array(im_orige, dtype=int)]
     #
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
@@ -193,38 +191,41 @@ def initQuants(hist_seg):
     return quants
 
 def updateSegmentIndex(q1, q2):
-
+    """
+    Helper function used in qunatize() func in order to update the indices of z array
+    :param q1:
+    :param q2:
+    :return: updated value of z_index inside z array.
+    """
     return (q1+q2)/2
 
-def updateQuantIndex(start_idx, stop_idx, histogram,q):
+def updateQuantIndex(start_idx, stop_idx, histogram):
     """
-
+    Helper function used in qunatize() func in order to update the quants indices.
     :param seg_i: Is an range which represents a segment of 256 array.
     :param histogram:
-    :return:
+    :return: updated index of the current quant value which minimize the error
     """
-
-
-
-    seg_i_arr = np.array(range(int(start_idx)+1,int(stop_idx+1))) ##
-
-    hist_seg_i = histogram[range(int(start_idx)+1,int(stop_idx+1))] ##
-
-
-
+    seg_i_arr = np.array(range(int(start_idx),int(stop_idx+1))) ##
+    hist_seg_i = histogram[range(int(start_idx),int(stop_idx+1))] ##
     enumrtator = sum(list(map(lambda z, h_z: z * h_z,seg_i_arr , hist_seg_i)))
     denomenator = sum(hist_seg_i)
-    if  0 < stop_idx - start_idx < 1:
-        print(f"start {start_idx}\n stop {stop_idx}")
 
-    if denomenator == 0:
-        print(hist_seg_i)
-        return 0
 
     return enumrtator/denomenator
 
 
 
+def check_if_updated(before, after):
+    """
+    Given 2 array versions, we check if the array was updated
+    :param before: array before iterations
+    :param after: array after iterations
+    :return: Boolean value - True if any updates were made, False otherwise.
+    """
+    if before == after:
+        return False
+    return True
 
 # 3.6 Optimal image quantization
 def quantize (im_orig, n_quant, n_iter):
@@ -237,13 +238,12 @@ def quantize (im_orig, n_quant, n_iter):
              error: is an array with shape (n_iter,) (or less) of the total intensities error for each iteration of the
     """
     # Setting the relevant variables for the algorithm:
-    error = np.array([])
+    error = []
     histogram,bins = np.histogram(im_orig, bins = 256)
     hist_cdf = np.array(histogram.cumsum(), dtype=np.float64) #make more elegant
     N = getNumOfPixel(im_orig)
     delta = N/n_quant
     z = [-1]
-
     # Initialize the segments array we want to start with:
     for q in range(1,n_quant):
         z.append(np.where(hist_cdf >= q * delta)[0][0])
@@ -252,33 +252,44 @@ def quantize (im_orig, n_quant, n_iter):
     quants = initQuants(z)
     # Iterate through the quants and z items, and update the values to reduce the error
     for iteration in range(n_iter):
-        if (0 or 0.0 in quants) or (0 or 0.0 in z):
-            print(f"on iteration {iteration}")
-            print(f"zeds are {z} \nand quants are {quants}")
-            # break
+        # quants_updated = True
+        # z_updated = True
+        # quants_prev = quants
+        # z_prev = z
         # Computing q - the values to which each of the segments’ intensities will map.
         #               q is also a one dimensional array, containing n_quant elements:
+
         for q in range(len(quants)):
             # print(f"z is: {z}\n\n")
-            quants[q] = updateQuantIndex(z[q],z[q+1], histogram,q)
-
+            quants[q] = updateQuantIndex(z[q],z[q+1], histogram)
+        # quants_updated = check_if_updated(quants_prev,quants)
         # Computing z - the borders which divide the histograms into segments.
         #           z is an array with shape (n_quant+1,). The first and last elements are 0 and 255 respectively:
         for z_i in range(1, len(z)-2):
-            # print(f"quants is {quants}\n\n")
             z[z_i] = updateSegmentIndex(quants[z_i-1], quants[z_i])
-        #Loop for the errors calculations:
+        # z_updated = check_if_updated(z_prev,z)
 
-    nz = [range(int(z[i]),int(z[i+1])) for i in range(len(z)-1)]
+        #Loop for the errors calculations:
+        error_i = 0
+        for i in range(len(quants)):
+            inner_sum = 0
+            q = quants[i]
+            for g in range(int(z[i]), int(z[i+1])):
+                inner_sum += (q - g)**2 * histogram[g]
+            error_i += inner_sum
+        error.append(error_i)
+
     for z_i in range(len(z)-1):
         im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = quants[z_i]
     im_quant = im_orig
     print(quants)
-    TEST_imdisplay(im_quant)
 
+    return [im_quant, error]
 
 if __name__ == '__main__':
     test_im = read_image("/Users/tzlilovadia/Desktop/test.png",1)
-    # test_im = histogram_equalize(test_im)
+    test_im = histogram_equalize(test_im)
     # neq = quantize(test_im, , 100)
-    quantize(grad,50,100)
+    neq = quantize(test_im[1],50,16)
+    TEST_imdisplay(neq[0])
+    print(neq[1])
