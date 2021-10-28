@@ -1,3 +1,5 @@
 # ex1-zlilovadia
-zlilovadia
-answer_q1.txt, sol1.py, README.md
+zlilovadia, 6ec2d0e6
+README.md
+sol1.py
+answer_q1.txt
