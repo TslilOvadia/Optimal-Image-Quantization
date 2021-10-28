@@ -36,7 +36,6 @@ def read_image(filename, representation):
         resultImage = skimage.color.rgb2gray(tempImage)
     elif representation == RGB:
         resultImage = tempImage
-        print(resultImage)
 
     if resultImage.max() > 1:
         resultImage = resultImage / 255
