@@ -124,9 +124,13 @@ def getHistogram(image):
     hist,bins = np.histogram(image.flatten(), 256, [0, 1])
     return hist
 
+def histogram_equalize_rgb(image):
+    pass
+
+def histogram_equalize_grayScale(image):
+    pass
 
 # 3.5 - Histogram equalization
-
 def histogram_equalize(im_orig):
     """
     Given an image, this function will perform an histogram equalization.
@@ -149,27 +153,27 @@ def histogram_equalize(im_orig):
 
     # Step No. 0 - Check if the given image is an RGB/GrayScale Format:
     swappedToYIQ = False # Used to help us know if yiq2rgb is needed
+    color_im = None
+    N = getNumOfPixel(im_orig)
     format = checkImageFormat(im_orig)
     if format == RGB:
-        im_orig = rgb2yiq(im_orig)[:,:,0]
+        color_im = rgb2yiq(im_orig)
+        # Take The Y Comp.
+        im_orig = color_im[:,:,0]
+
         swappedToYIQ = True
 
     # Step No. 1 - Compute the image histogram:
-
-    hist_orig,bins = np.histogram(im_orig.flatten(), 256, [0, 1])
+    hist_orig,bins = np.histogram(im_orig, 256)
     # Step No. 2 - Compute the cumulative histogram:
     hist_cdf = np.array(hist_orig.cumsum(), dtype=np.float)
     # Step No. 3 - Normalize the cumulative histogram:
-    N = getNumOfPixel(im_orig)
     hist_cdf /= N
     # Step No 4. - Multiply the normalized histogram by the maximal gray level value (Z-1):
     hist_cdf *= 255
     # Step No 5. - Verify that the minimal value is 0 and that the maximal is Z-1, otherwise
     # stretch the result linearly in the range [0,Z-1]:
 
-    if not checkIfNormalizedValid(hist_cdf):
-        #Linear Stretch here
-        pass
     im_orige = np.array(im_orig.flatten())
     im_orige = np.floor(im_orige*255)
     # LUT:
@@ -177,12 +181,13 @@ def histogram_equalize(im_orig):
     flat_im_eq = lookUpTable[np.array(im_orige, dtype=int)]
     #
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
-    # if swappedToYIQ:
+    if swappedToYIQ:
+        color_im[:,:,0] = im_eq/255
 
-    hist_eq, bins_eq = np.histogram(flat_im_eq, 256, [0, 256])
+        im_eq = yiq2rgb(color_im).astype(np.float64)
+    hist_eq, bins_eq = np.histogram(flat_im_eq, 256)
 
-
-    return hist_orig, im_eq, hist_eq
+    return im_eq, hist_orig, hist_eq
 
 def initQuants(hist_seg):
     quants = []
@@ -210,6 +215,9 @@ def updateQuantIndex(start_idx, stop_idx, histogram):
     hist_seg_i = histogram[range(int(start_idx),int(stop_idx+1))] ##
     enumrtator = sum(list(map(lambda z, h_z: z * h_z,seg_i_arr , hist_seg_i)))
     denomenator = sum(hist_seg_i)
+
+    if denomenator == 0:
+        return 0
 
 
     return enumrtator/denomenator
@@ -260,7 +268,6 @@ def quantize (im_orig, n_quant, n_iter):
         #               q is also a one dimensional array, containing n_quant elements:
 
         for q in range(len(quants)):
-            # print(f"z is: {z}\n\n")
             quants[q] = updateQuantIndex(z[q],z[q+1], histogram)
         # quants_updated = check_if_updated(quants_prev,quants)
         # Computing z - the borders which divide the histograms into segments.
@@ -271,25 +278,24 @@ def quantize (im_orig, n_quant, n_iter):
 
         #Loop for the errors calculations:
         error_i = 0
-        for i in range(len(quants)):
-            inner_sum = 0
-            q = quants[i]
-            for g in range(int(z[i]), int(z[i+1])):
-                inner_sum += (q - g)**2 * histogram[g]
-            error_i += inner_sum
-        error.append(error_i)
+        for i in range(n_quant):
+            g = np.arange(int(z[i]), int(z[i+1]))
+            error_i  += sum((quants[i] - g)**2 * histogram[g])
 
+        error.append(error_i)
+    # plt.plot(error)
+    # plt.show()
     for z_i in range(len(z)-1):
-        im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = quants[z_i]
+        im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = int(quants[z_i])
     im_quant = im_orig
-    print(quants)
+
 
     return [im_quant, error]
 
 if __name__ == '__main__':
-    test_im = read_image("/Users/tzlilovadia/Desktop/test.png",1)
-    test_im = histogram_equalize(test_im)
-    # neq = quantize(test_im, , 100)
-    neq = quantize(test_im[1],50,16)
-    TEST_imdisplay(neq[0])
-    print(neq[1])
+    test_im = read_image("/Users/tzlilovadia/Desktop/testt.png",2)
+    TEST_imdisplay(test_im)
+    test_im_new = histogram_equalize(test_im)
+    TEST_imdisplay(test_im_new[0])
+
+
