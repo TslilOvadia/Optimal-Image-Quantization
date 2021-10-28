@@ -1,0 +1,4 @@
+Q1: If a division will have a gray level segment with no pixels, why would the procedure crash?
+
+A1: If we have a segment with no pixels in it, when we will need to update the qunats from the Z indices array,
+we will get a division by zero, cause the value on the denominator will be 0, after ∑ on 0 pixels.

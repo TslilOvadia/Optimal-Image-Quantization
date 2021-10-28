@@ -1,12 +1,10 @@
 ### Ex-1.
 ### Submitted by Tzlil Ovadia, ID: 311317689
 
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.color
 
-np.set_printoptions(threshold=sys.maxsize)
 
 YIQ_MATRIX = np.array([[0.299, 0.587, 0.114],[0.596, -0.275, -0.321],[0.212, -0.523, 0.311]])
 RGB_MATRIX = np.array([[1, 0.956, 0,621],[1, -0.272, -0.647],[1, -1.106, 1.703]])
@@ -73,11 +71,15 @@ def rgb2yiq(imRGB):
     :param imRGB:  An RGB image
     :return:
     """
-    return skimage.color.rgb2yiq(imRGB)
-    # result = np.dot(YIQ_MATRIX, imRGB.T)
-    # return result
-
-
+    r,g,b = imRGB[:,:,0], imRGB[:,:,1], imRGB[:,:,2]
+    y = YIQ_MATRIX[0][0]*r + YIQ_MATRIX[0][1]*g + YIQ_MATRIX[0][2]*b
+    i = YIQ_MATRIX[1][0]*r + YIQ_MATRIX[1][1]*g + YIQ_MATRIX[1][2]*b
+    q = YIQ_MATRIX[2][0]*r + YIQ_MATRIX[2][1]*g + YIQ_MATRIX[2][2]*b
+    result = imRGB
+    result[:,:,0] = y
+    result[:,:,1] = i
+    result[:, :, 2] = q
+    return result
 # 3.4.2 - Transforming an YIQ image to RGB color space
 def yiq2rgb(imYIQ):
     """
@@ -85,9 +87,15 @@ def yiq2rgb(imYIQ):
     :param imYIQ:
     :return:
     """
-    # result = np.dot(RGB_MATRIX, imYIQ.T)
-    # return result
-    return skimage.color.yiq2rgb(imYIQ)
+    y,i,q = imYIQ[:,:,0], imYIQ[:,:,1], imYIQ[:,:,2]
+    r = RGB_MATRIX[0][0]*y + RGB_MATRIX[0][1]*i + RGB_MATRIX[0][2]*q
+    g = RGB_MATRIX[1][0]*y + RGB_MATRIX[1][1]*i + RGB_MATRIX[1][2]*q
+    b = RGB_MATRIX[2][0]*y + RGB_MATRIX[2][1]*i + RGB_MATRIX[2][2]*q
+    result = imYIQ
+    result[:,:,0] = r
+    result[:,:,1] = g
+    result[:, :, 2] = b
+    return result
 
 def getNumOfPixel(image):
     """
@@ -120,15 +128,6 @@ def checkImageFormat(image):
     else:
         return 0
 
-def getHistogram(image):
-    hist,bins = np.histogram(image.flatten(), 256, [0, 1])
-    return hist
-
-def histogram_equalize_rgb(image):
-    pass
-
-def histogram_equalize_grayScale(image):
-    pass
 
 # 3.5 - Histogram equalization
 def histogram_equalize(im_orig):
@@ -174,11 +173,11 @@ def histogram_equalize(im_orig):
     # Step No 5. - Verify that the minimal value is 0 and that the maximal is Z-1, otherwise
     # stretch the result linearly in the range [0,Z-1]:
 
-    im_orige = np.array(im_orig.flatten())
-    im_orige = np.floor(im_orige*255)
+    flat = np.array(im_orig.flatten())
+    flat = np.floor(flat*255)
     # LUT:
     lookUpTable = np.floor((hist_cdf - hist_cdf.min())/(hist_cdf[255]-hist_cdf.min())*255)
-    flat_im_eq = lookUpTable[np.array(im_orige, dtype=int)]
+    flat_im_eq = lookUpTable[np.array(flat, dtype=int)]
     #
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
     if swappedToYIQ:
@@ -283,8 +282,8 @@ def quantize (im_orig, n_quant, n_iter):
             error_i  += sum((quants[i] - g)**2 * histogram[g])
 
         error.append(error_i)
-    # plt.plot(error)
-    # plt.show()
+    plt.plot(error)
+    plt.show()
     for z_i in range(len(z)-1):
         im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = int(quants[z_i])
     im_quant = im_orig
