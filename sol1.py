@@ -31,11 +31,15 @@ def read_image(filename, representation):
     if representation != RGB and representation != GRAY_SCALE:
         return "Invalid Input. You may use representation <- {1, 2}"
     tempImage  = plt.imread(filename)[:,:,:3]
-    resultImage = tempImage
+    resultImage = np.array(tempImage)
+
     if representation == GRAY_SCALE:
         resultImage = skimage.color.rgb2gray(tempImage)
     elif representation == RGB:
         resultImage = tempImage
+
+    if resultImage.max() > 1:
+        resultImage = resultImage/255
 
     return resultImage.astype(np.float64)
 
@@ -60,7 +64,10 @@ def imdisplay(filename, representation):
         return "Invalid Input. You may use representation <- {1, 2}"
     imageToShow = read_image(filename, representation)
     plt.figure()
-    plt.imshow(imageToShow, cmap = "gray")
+    if representation == GRAY_SCALE:
+        plt.imshow(imageToShow, cmap = "gray")
+    elif representation == RGB:
+        plt.imshow(imageToShow)
     plt.show()
 
 
@@ -288,13 +295,12 @@ def quantize (im_orig, n_quant, n_iter):
         im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = int(quants[z_i])
     im_quant = im_orig
 
-
     return [im_quant, error]
 
 # if __name__ == '__main__':
-#     test_im = read_image("/Users/tzlilovadia/Desktop/testt.png",2)
+#     test_im = read_image("/Users/tzlilovadia/Desktop/monkey.jpg",2)
 #     TEST_imdisplay(test_im)
 #     test_im_new = histogram_equalize(test_im)
 #     TEST_imdisplay(test_im_new[0])
 #
-#
+
