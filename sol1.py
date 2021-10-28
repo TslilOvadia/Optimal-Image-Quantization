@@ -300,15 +300,18 @@ def quantize(im_orig, n_quant, n_iter):
         if not z_updated and not quants_updated:
             break
         # Loop for the errors calculations:
+
         error_i = 0
         for i in range(n_quant):
-            g = np.arange(int(z[i]), int(z[i + 1]))
-            error_i += sum((quants[i] - g) ** 2 * histogram[g])
+            for z_i in range(len(z)):
+                error_i += ((quants[i] - z_i) ** 2) * z_i
         error.append(error_i)
+    plt.plot(error)
+    plt.show()
     z = np.divide(z, 255)
     for z_i in range(len(z) - 1):
         im_orig[(z[z_i] < im_orig) & (im_orig <= z[z_i + 1])] = quants[z_i]/255
-    # im_orig.astype(np.float64)
+    im_orig.astype(np.float64)
 
     if swappedToYIQ:
         # Update the Y field
@@ -347,5 +350,4 @@ def quantize_rgb(im_orig, n_quant):
     # Creating the image from the lookUpTable:
     quantizedImage = colors[lookUpTable]
     return quantizedImage
-
 
