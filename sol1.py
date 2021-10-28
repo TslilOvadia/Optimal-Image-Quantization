@@ -13,8 +13,8 @@ RGB = 2
 GRAY_SCALE_LEVELS = 256
 
 
-x = np.hstack([np.repeat(np.arange(0,50,2),10)[None, :], np.array([255]*6)[None, :]])
-grad = np.tile(x, (256,1))
+# x = np.hstack([np.repeat(np.arange(0,50,2),10)[None, :], np.array([255]*6)[None, :]])
+# grad = np.tile(x, (256,1))
 
 # 3.2 - Read Image
 def read_image(filename, representation):
@@ -288,13 +288,5 @@ def quantize (im_orig, n_quant, n_iter):
         im_orig[ (z[z_i] < im_orig) & ( im_orig <= z[z_i+1])] = int(quants[z_i])
     im_quant = im_orig
 
-
     return [im_quant, error]
-
-if __name__ == '__main__':
-    test_im = read_image("/Users/tzlilovadia/Desktop/testt.png",2)
-    TEST_imdisplay(test_im)
-    test_im_new = histogram_equalize(test_im)
-    TEST_imdisplay(test_im_new[0])
-
 
