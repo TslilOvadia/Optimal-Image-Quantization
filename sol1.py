@@ -36,9 +36,10 @@ def read_image(filename, representation):
         resultImage = skimage.color.rgb2gray(tempImage)
     elif representation == RGB:
         resultImage = tempImage
-
     if resultImage.max() > 1:
-        resultImage = resultImage / 255
+        resultImage = resultImage/255
+
+
 
     return resultImage.astype(np.float64)
 
@@ -94,7 +95,7 @@ def yiq2rgb(imYIQ):
     """
     Transforming an YIQ image to RGB color space
     :param imYIQ:
-    :return:
+    :return: RGB representation of the image supplied
     """
     y, i, q = imYIQ[:, :, 0], imYIQ[:, :, 1], imYIQ[:, :, 2]
     r = RGB_MATRIX[0][0] * y + RGB_MATRIX[0][1] * i + RGB_MATRIX[0][2] * q
@@ -151,18 +152,11 @@ def histogram_equalize(im_orig):
             - hist_eq - is a 256 bin histogram of the equalized image (array with shape (256,) ).
     """
 
-    """ 
-    Important Things To Complete:
-    1. Ask if it is possible to make use of skimage.color.rgb2yiq and yiq2rgb
-    2. Figure out how to perform a linear stretch
-    3. Add some end-cases where the algorithm could fail e.g where we have only 2-color image.
-    4. Remove unnecessary junk from code
-    5. Make sure that the values returned are by the requested format
-    """
-
     # Step No. 0 - Check if the given image is an RGB/GrayScale Format:
     swappedToYIQ = False  # Used to help us know if yiq2rgb is needed
     color_im = None
+    im_orig = np.copy(im_orig) # Make sure that the original image isn't changed
+
     format = checkImageFormat(im_orig)
     if format == RGB:
         # Convert the image to YIQ format:
@@ -186,15 +180,15 @@ def histogram_equalize(im_orig):
     flat = np.array(im_orig.flatten())
     flat = np.floor(flat * 255)
     lookUpTable = np.floor((hist_cdf - hist_cdf.min()) / (hist_cdf[255] - hist_cdf.min()) * 255)
-    flat_im_eq = lookUpTable[np.array(flat, dtype=int)]
+    flat_im_eq = lookUpTable[np.array(flat.astype(int))].astype(np.float64)/255
     im_eq = np.reshape(np.asarray(flat_im_eq), im_orig.shape)
     if swappedToYIQ:
-        color_im[:, :, 0] = im_eq / 255
+        color_im[:, :, 0] = im_eq
         im_eq = skimage.color.yiq2rgb(color_im).astype(np.float64)
 
     hist_eq, bins_eq = np.histogram(flat_im_eq, 256)
 
-    return im_eq, hist_orig, hist_eq
+    return im_eq.astype(np.float64), hist_orig, hist_eq
 
 
 def initQuants(hist_seg):
@@ -255,6 +249,8 @@ def quantize(im_orig, n_quant, n_iter):
              error: is an array with shape (n_iter,) (or less) of the total intensities error for each iteration of the
     """
     # Setting the relevant variables for the algorithm:
+
+    im_orig = np.copy(im_orig) # Make sure that the original image isn't changed
     error = []
     swappedToYIQ = False
     color_im = None
@@ -294,7 +290,7 @@ def quantize(im_orig, n_quant, n_iter):
         #           z is an array with shape (n_quant+1,). The first and last elements are 0 and 255 respectively:
         for z_i in range(1, len(z) - 2):
             z_i_before = z[z_i]
-            z[z_i] = updateSegmentIndex(quants[z_i - 1], quants[z_i])
+            z[z_i] = updateSegmentIndex(quants[z_i-1], quants[z_i])
             if z_i_before != z[z_i]:
                 z_updated = True
         if not z_updated and not quants_updated:
@@ -306,28 +302,25 @@ def quantize(im_orig, n_quant, n_iter):
             for z_i in range(len(z)):
                 error_i += ((quants[i] - z_i) ** 2) * z_i
         error.append(error_i)
-    plt.plot(error)
-    plt.show()
+
     z = np.divide(z, 255)
+    im_orig.astype(np.float64)
     for z_i in range(len(z) - 1):
         im_orig[(z[z_i] < im_orig) & (im_orig <= z[z_i + 1])] = quants[z_i]/255
-    im_orig.astype(np.float64)
 
     if swappedToYIQ:
         # Update the Y field
         color_im[:, :, 0] = im_orig
-        im_orig = yiq2rgb(color_im)
-
+        im_orig = yiq2rgb(color_im).astype(np.float64)
 
     return [im_orig, error]
 
 
 def quantize_rgb(im_orig, n_quant):
     """
+    Quantize for full color space
 
-    :param im_orig:
-    :param n_quant:
-    :return:
+    :return: Quantized image with n_quant colors
     """
     import scipy.cluster.vq as scpy
     format = checkImageFormat(im_orig)
@@ -349,5 +342,4 @@ def quantize_rgb(im_orig, n_quant):
     lookUpTable = np.reshape(quant, (im_orig.shape[0], im_orig.shape[1]))
     # Creating the image from the lookUpTable:
     quantizedImage = colors[lookUpTable]
-    return quantizedImage
-
+    return quantizedImage.astype(np.float64)
