@@ -1,6 +1,3 @@
-### Ex-1.
-### Submitted by Tzlil Ovadia, ID: 311317689
-
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.color
@@ -343,3 +340,4 @@ def quantize_rgb(im_orig, n_quant):
     # Creating the image from the lookUpTable:
     quantizedImage = colors[lookUpTable]
     return quantizedImage.astype(np.float64)
+
