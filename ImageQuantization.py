@@ -343,10 +343,11 @@ def quantize_rgb(im_orig, n_quant):
 
 
 if __name__ == "__main__":
-    im = read_image("MyDog.jpg",2)
-    bw_im,_ = quantize(im, 10, 100)
-    plt.imshow(bw_im)
+    bw_im = read_image("MyDog.jpg",1)
+    rgb_im = read_image("MyDog.jpg", 2)
+    q_bw_im,_ = quantize(bw_im, 10, 100)
+    plt.imshow(bw_im, cmap='gray')
     plt.show()
-    q_im = quantize_rgb(im,10)
+    q_im = quantize_rgb(rgb_im,10)
     plt.imshow(q_im)
     plt.show()
