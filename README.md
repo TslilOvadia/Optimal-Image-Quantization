@@ -47,7 +47,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-In this project, I implemented the tools required to apply a pyramid blending algorithm.
+In this project, I implemented the tools required to apply an Image Optimal Quantization Using Histogram Equalization.
 The tools provided here are learned in Image Processing course @ HUJI.
 if you wish to learn more about this process, please visit [![Color Quantization][product-screenshot]](https://en.wikipedia.org/wiki/Color_quantization)
 
