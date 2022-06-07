@@ -4,7 +4,7 @@
   <a href="https://github.com/TslilOvadia/Optimal-Image-Quantization">
   </a>
 
-<h3 align="center">Image Optimal Quantization Using Histogram Equalization</h3>
+<h3 align="center">Optimal Image Quantization Using Histogram Equalization</h3>
 
   <p align="center">
     project_description
