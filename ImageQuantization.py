@@ -341,3 +341,10 @@ def quantize_rgb(im_orig, n_quant):
     quantizedImage = colors[lookUpTable]
     return quantizedImage.astype(np.float64)
 
+
+if __name__ == "__main__":
+    im = read_image("MyDog.jpg",2)
+    bw_im = quantize(im, 10, 100)
+    plt.imshow(bw_im)
+    q_im = quantize_rgb(im,10)
+    plt.imshow(q_im)
