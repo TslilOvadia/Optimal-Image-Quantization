@@ -81,7 +81,10 @@ if you wish to learn more about this process, please visit [![Color Quantization
 4. Enjoy!
 
 Example Outputs:
-![RGB out](BW_out.png?raw=true "Title")
+
+![BW out](BW_out.png?raw=true "Title")
+
+![RGB out](rgb_out.png?raw=true "Title")
 
 
 
