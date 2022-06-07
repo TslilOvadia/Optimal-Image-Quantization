@@ -80,7 +80,10 @@ if you wish to learn more about this process, please visit [![Color Quantization
 3. Use quantize_rgb function if the image is colored, otherwise use quantize function (read documentation for further instructions).
 4. Enjoy!
 
-You can find some examples for outputs in the external file.
+Example Outputs:
+![RGB out](relative/path/to/BW_out.png?raw=true "Title")
+
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
